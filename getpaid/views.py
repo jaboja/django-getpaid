@@ -40,7 +40,7 @@ class NewPaymentView(FormView):
         payment.change_status('in_progress')
         redirecting_to_payment_gateway_signal.send(sender=None, request=self.request, order=form.cleaned_data['order'], payment=payment, backend=form.cleaned_data['backend'])
 
-        logger.info('Redirecting to gateway URL %s (%s)' % gateway_url_tuple[0:1])
+        logger.info('Redirecting to gateway URL %s (%s)' % gateway_url_tuple[0:2])
 
         if gateway_url_tuple[1].upper() == 'GET':
             return HttpResponseRedirect(gateway_url_tuple[0])
