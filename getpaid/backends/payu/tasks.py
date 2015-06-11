@@ -17,12 +17,16 @@ def _get_processor(payment_id, session_id):
             return None
         # Avoiding circular import
         from getpaid.backends.payu import PaymentProcessor
-        return PaymentProcessor(payment)
+        processor = PaymentProcessor(payment)
     except Exception, ex:
         logger.error(
             'Task unable to get processor for payment (%d, %r): %r' % (
                 payment_id, session_id, ex))
         raise
+    else:
+        logger.info("Got payment processor for payment (%d, %r)" % (
+            payment_id, session_id))
+        return processor
 
 
 @task(max_retries=50, default_retry_delay=2 * 60)
