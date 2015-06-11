@@ -1,16 +1,21 @@
 # Create your views here.
+import logging
+
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
-from django.views.generic import DetailView
-from django.views.generic.base import RedirectView, TemplateView
+from django.views.generic.base import RedirectView
 from django.views.generic.edit import FormView
-from getpaid.forms import PaymentMethodForm
-from getpaid.models import Payment
-from getpaid.signals import redirecting_to_payment_gateway_signal
+
+from .forms import PaymentMethodForm
+from .models import Payment
+from .signals import redirecting_to_payment_gateway_signal
+
+
+logger = logging.getLogger('getpaid')
 
 
 class NewPaymentView(FormView):
@@ -34,6 +39,8 @@ class NewPaymentView(FormView):
         gateway_url_tuple = processor.get_gateway_url(self.request)
         payment.change_status('in_progress')
         redirecting_to_payment_gateway_signal.send(sender=None, request=self.request, order=form.cleaned_data['order'], payment=payment, backend=form.cleaned_data['backend'])
+
+        logger.info('Redirecting to gateway URL %s (%s)' % gateway_url_tuple[0:1])
 
         if gateway_url_tuple[1].upper() == 'GET':
             return HttpResponseRedirect(gateway_url_tuple[0])

@@ -128,10 +128,11 @@ class PaymentProcessor(PaymentProcessorBase):
             params['ts'] = time.time()
             params['sig'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key1)
 
-        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+        method = PaymentProcessor.get_backend_setting('method', 'get').lower()
+        if method == 'post':
             logger.info(u'New payment using POST: %s' % params)
             return self._GATEWAY_URL + 'UTF/NewPayment', 'POST', params
-        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+        elif method == 'get':
             logger.info(u'New payment using GET: %s' % params)
             for key in params.keys():
                 params[key] = unicode(params[key]).encode('utf-8')
