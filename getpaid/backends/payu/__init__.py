@@ -61,9 +61,10 @@ class PaymentProcessor(PaymentProcessorBase):
 
         try:
             params['pos_id'] = int(params['pos_id'])
+            if params['pos_id'] != int(PaymentProcessor.get_backend_setting('pos_id')):
+                raise ValueError
         except ValueError:
-            return 'POS_ID ERR'
-        if params['pos_id'] != int(PaymentProcessor.get_backend_setting('pos_id')):
+            logger.warning('Got message with wrong pos_id, %s' % str(params))
             return 'POS_ID ERR'
 
         try:
