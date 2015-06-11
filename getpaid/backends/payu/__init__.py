@@ -35,7 +35,7 @@ class PaymentProcessor(PaymentProcessorBase):
     _REQUEST_SIG_FIELDS = ('pos_id', 'pay_type', 'session_id', 'pos_auth_key',
                            'amount', 'desc', 'desc2', 'trsDesc', 'order_id', 'first_name', 'last_name',
                            'payback_login', 'street', 'street_hn', 'street_an', 'city', 'post_code',
-                           'country', 'email', 'phone', 'language', 'client_ip', 'ts' )
+                           'country', 'email', 'phone', 'language', 'client_ip', 'ts')
     _ONLINE_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
     _GET_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
     _GET_RESPONSE_SIG_FIELDS = (
@@ -73,6 +73,7 @@ class PaymentProcessor(PaymentProcessorBase):
             return 'SESSION_ID ERR'
 
         get_payment_status_task.delay(payment_id, session_id)
+        logger.info('get_payment_status_task.delay(%r, %r)' % (payment_id, session_id))
         return 'OK'
 
     def get_gateway_url(self, request):
@@ -98,7 +99,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = user_data['lang'].lower()
         elif PaymentProcessor.get_backend_setting('lang', False) and \
-                        PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         key1 = PaymentProcessor.get_backend_setting('key1')
@@ -119,8 +120,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         params['session_id'] = "%d:%s" % (self.payment.pk, str(time.time()))
 
-        #Warning: please make sure that this header actually has client IP
-        #         rather then web server proxy IP in your WSGI environment
+        # Warning: please make sure that this header actually has client IP
+        #          rather then web server proxy IP in your WSGI environment
         params['client_ip'] = request.META['REMOTE_ADDR']
 
         if signing:
@@ -159,8 +160,9 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning(u'Payment status error: %s' % response_params)
             return
 
-        if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS, key2) == response_params[
-            'trans_sig']:
+        if PaymentProcessor.compute_sig(
+            response_params, self._GET_RESPONSE_SIG_FIELDS, key2
+        ) == response_params['trans_sig']:
             if not (int(response_params['trans_pos_id']) == int(params['pos_id']) or int(
                     response_params['trans_order_id']) == self.payment.pk):
                 logger.error(u'Payment status wrong pos_id and/or order id: %s' % response_params)
@@ -174,9 +176,10 @@ class PaymentProcessor(PaymentProcessorBase):
             if status in (PayUTransactionStatus.AWAITING, PayUTransactionStatus.FINISHED):
 
                 if self.payment.on_success(Decimal(response_params['trans_amount']) / Decimal('100')):
-                    #fully paid
+                    # fully paid
                     if status == PayUTransactionStatus.AWAITING:
                         accept_payment.delay(self.payment.id, session_id)
+                        logger.info('accept_payment.delay(%r, %r)' % (self.payment_id, session_id))
 
             elif status in (PayUTransactionStatus.CANCELED,
                             PayUTransactionStatus.ERROR,
@@ -200,8 +203,9 @@ class PaymentProcessor(PaymentProcessorBase):
         response = urllib2.urlopen(request)
         response_params = PaymentProcessor._parse_text_response(response.read().decode('utf-8'))
         if response_params['status'] == 'OK':
-            if PaymentProcessor.compute_sig(response_params, self._GET_ACCEPT_SIG_FIELDS, key2) != response_params[
-                'trans_sig']:
+            if PaymentProcessor.compute_sig(
+                response_params, self._GET_ACCEPT_SIG_FIELDS, key2
+            ) != response_params['trans_sig']:
                 logger.error(u'Wrong signature for Payment/confirm response: %s' % response_params)
                 return
             if int(response_params['trans_pos_id']) != int(params['pos_id']):
@@ -211,7 +215,6 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.info(u'Payment accepted: %s' % response_params)
         else:
             logger.warning(u'Payment not accepted, error: %s' % response_params)
-
 
     @staticmethod
     def _parse_text_response(text):
@@ -226,7 +229,4 @@ class PaymentProcessor(PaymentProcessorBase):
                 filter(
                     lambda l: len(l) == 2,
                     map(lambda l: l.split(':', 1),
-                        text.splitlines())
-                )
-            )
-        )
+                        text.splitlines()))))
