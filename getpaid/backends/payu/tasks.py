@@ -31,6 +31,8 @@ def _get_processor(payment_id, session_id):
 
 @task(max_retries=50, default_retry_delay=2 * 60)
 def get_payment_status_task(payment_id, session_id):
+    logger.info(
+        "get_payment_status_task(%r, %r)..." % (payment_id, session_id))
     processor = _get_processor(payment_id, session_id)
     if processor is not None:
         processor.get_payment_status(session_id)
@@ -40,6 +42,8 @@ def get_payment_status_task(payment_id, session_id):
 
 @task(max_retries=50, default_retry_delay=2 * 60)
 def accept_payment(payment_id, session_id):
+    logger.info(
+        "accept_payment(%r, %r)..." % (payment_id, session_id))
     processor = _get_processor(payment_id, session_id)
     if processor is not None:
         processor.accept_payment(session_id)

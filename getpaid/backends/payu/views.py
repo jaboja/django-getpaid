@@ -17,6 +17,7 @@ class OnlineView(View):
     The most important logic of this view is delegated to ``PaymentProcessor.online()`` method
     """
     def post(self, request, *args, **kwargs):
+        logger.info("Received status change: %r" % request.POST)
         try:
             pos_id = request.POST['pos_id']
             session_id = request.POST['session_id']
